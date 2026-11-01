@@ -1,4 +1,4 @@
-# gamepad-mode
+# linux-gamepad-mode-viewer
 
 Detect the **USB protocol mode** (HID / XInput / GIP / Switch / PlayStation) and
 **rumble capability** of connected game controllers on Linux.

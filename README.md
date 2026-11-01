@@ -1,4 +1,4 @@
-# gamepad-mode
+# linux-gamepad-mode-viewer
 
 > [English version →](README.en.md)
 
