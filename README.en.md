@@ -29,6 +29,8 @@ Example output (`--text`):
 2  Microsoft X-Box 360 pad 0  28de:11ff  virtual virtual pad (uinput/Steam)           -     yes
 ```
 
+![Screenshot](docs/screenshot.png)
+
 ## Build from source
 
 Requires `gcc` + `pkg-config` + `gtk3-devel` (Fedora: `sudo dnf install gtk3-devel`):

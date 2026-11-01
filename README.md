@@ -27,6 +27,8 @@ GTK3 运行库（绝大多数 Linux 桌面已自带）：
 2  Microsoft X-Box 360 pad 0  28de:11ff  虚拟   虚拟手柄（uinput/Steam）              -     有振动
 ```
 
+![运行截图](docs/screenshot.png)
+
 ## 从源码编译
 
 需要 `gcc` + `pkg-config` + `gtk3-devel`（Fedora：`sudo dnf install gtk3-devel`）：
