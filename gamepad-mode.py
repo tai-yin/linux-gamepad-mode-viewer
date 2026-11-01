@@ -13,6 +13,7 @@ import argparse
 import json
 import os
 import sys
+import textwrap
 
 INPUT_DEVICES = "/proc/bus/input/devices"
 
@@ -244,7 +245,12 @@ def render_text(infos, color=True):
                 ln = "\033[32m" + ln + "\033[0m"
             out.append(ln)
         lines = out
-    return "\n".join(lines) + "\n\n" + LEGEND
+    try:
+        term_width = os.get_terminal_size().columns
+    except OSError:
+        term_width = 80
+    legend = textwrap.fill(LEGEND, width=max(20, min(term_width, 100)))
+    return "\n".join(lines) + "\n\n" + legend
 
 
 def watch_tui():
@@ -266,6 +272,8 @@ def watch_tui():
             stdscr.erase()
             h, w = stdscr.getmaxyx()
             infos = report()
+            footer = textwrap.wrap(LEGEND, width=max(20, w - 1)) if w > 1 else [LEGEND]
+            nfooter = len(footer)
             stdscr.addstr(0, 0, "游戏手柄模式检测  (q 退出)", curses.A_BOLD)
             try:
                 stdscr.addstr(1, 3, "名称", curses.A_UNDERLINE)
@@ -278,8 +286,9 @@ def watch_tui():
             if not infos:
                 stdscr.addstr(3, 0, "未检测到游戏手柄，正在等待插入……")
             y = 3
+            limit = max(3, h - nfooter)
             for i, info in enumerate(infos, 1):
-                if y >= h - 1:
+                if y >= limit:
                     break
                 vidpid = f"{info['vendor']}:{info['product']}" if info["vendor"] else "?"
                 try:
@@ -296,9 +305,12 @@ def watch_tui():
                 except curses.error:
                     pass
                 y += 1
-            if h > 1:
+            for j, ln in enumerate(footer):
+                fy = h - nfooter + j
+                if fy < 0:
+                    continue
                 try:
-                    stdscr.addstr(h - 1, 0, LEGEND[:max(0, w - 1)], curses.A_DIM)
+                    stdscr.addstr(fy, 0, ln, curses.A_DIM)
                 except curses.error:
                     pass
             stdscr.refresh()
