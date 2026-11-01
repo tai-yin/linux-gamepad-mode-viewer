@@ -58,10 +58,27 @@ Example output:
   input and rumble to your real controller. Disabling Steam Input for that
   controller makes the row disappear.
 
+## C GUI version (`c/`)
+
+A compiled C/GTK3 GUI version of the same detector (shares identical detection
+logic; `--text` / `--json` output matches the Python tool).
+
+```bash
+cd c
+make                            # requires gtk3-devel (Fedora: sudo dnf install gtk3-devel)
+./gamepad-mode-gui              # GTK3 window, 1 s auto-refresh, hotplug-aware
+./gamepad-mode-gui --text       # one-shot plain text
+./gamepad-mode-gui --json       # JSON output
+```
+
+The binary is ~23 KB (dynamically linked against the GTK3 already present on
+most Linux desktops).
+
 ## Requirements
 
 - Linux
-- Python ≥ 3.6 (standard library only)
+- Python ≥ 3.6 (standard library only) — for the Python tool
+- GTK3 (runtime) + gcc + pkg-config + gtk3-devel (build-time) — for the C GUI
 
 ## License
 
