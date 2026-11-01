@@ -1,5 +1,7 @@
 # gamepad-mode
 
+> [English version →](README.en.md)
+
 检测 Linux 上已连接游戏手柄的 **USB 协议模式**（HID / XInput / GIP / Switch / PlayStation）与**振动能力**。
 
 多数手柄在 Steam 里看起来都一样（例如盖世小鸡 G7 Pro 在 GIP 和 XInput 两种模式下都显示为
