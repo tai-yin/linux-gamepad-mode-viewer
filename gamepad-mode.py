@@ -213,6 +213,11 @@ def report():
     return infos
 
 
+LEGEND = ("提示：连接列为「虚拟」的条目是 Steam Input 用 uinput 生成的虚拟手柄"
+          "（VID 28de=Valve），游戏通过它转发输入/振动到真实手柄；"
+          "在 Steam 里关掉「启用 Steam 输入」后该条目会消失。")
+
+
 def render_text(infos, color=True):
     if not infos:
         return "未检测到游戏手柄（检查 /proc/bus/input/devices）"
@@ -238,8 +243,8 @@ def render_text(infos, color=True):
             elif "有振动" in ln:
                 ln = "\033[32m" + ln + "\033[0m"
             out.append(ln)
-        return "\n".join(out)
-    return "\n".join(lines)
+        lines = out
+    return "\n".join(lines) + "\n\n" + LEGEND
 
 
 def watch_tui():
@@ -262,9 +267,17 @@ def watch_tui():
             h, w = stdscr.getmaxyx()
             infos = report()
             stdscr.addstr(0, 0, "游戏手柄模式检测  (q 退出)", curses.A_BOLD)
+            try:
+                stdscr.addstr(1, 3, "名称", curses.A_UNDERLINE)
+                stdscr.addstr(1, 44, "连接", curses.A_UNDERLINE)
+                stdscr.addstr(1, 51, "协议模式", curses.A_UNDERLINE)
+                stdscr.addstr(1, 84, "VID:PID", curses.A_UNDERLINE)
+                stdscr.addstr(1, 97, "振动", curses.A_UNDERLINE)
+            except curses.error:
+                pass
             if not infos:
                 stdscr.addstr(3, 0, "未检测到游戏手柄，正在等待插入……")
-            y = 2
+            y = 3
             for i, info in enumerate(infos, 1):
                 if y >= h - 1:
                     break
@@ -283,6 +296,11 @@ def watch_tui():
                 except curses.error:
                     pass
                 y += 1
+            if h > 1:
+                try:
+                    stdscr.addstr(h - 1, 0, LEGEND[:max(0, w - 1)], curses.A_DIM)
+                except curses.error:
+                    pass
             stdscr.refresh()
             try:
                 c = stdscr.getch()

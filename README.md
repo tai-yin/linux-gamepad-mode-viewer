@@ -50,6 +50,14 @@ Example output:
 - Keyboard knobs / dials that the kernel also exposes as `js*` devices are
   filtered out via their ABS axis set.
 
+## Notes
+
+- A row whose 连接/transport column shows **虚拟 (virtual)** is *not* a second
+  physical device: it is the virtual Xbox 360 controller that **Steam Input**
+  creates via uinput (`VID 28de` = Valve). Games talk to it, and Steam forwards
+  input and rumble to your real controller. Disabling Steam Input for that
+  controller makes the row disappear.
+
 ## Requirements
 
 - Linux
