@@ -1,85 +1,72 @@
 # gamepad-mode
 
-Detect the USB protocol mode (HID / XInput / GIP / Switch / PlayStation) and
-rumble capability of connected game controllers on Linux.
+检测 Linux 上已连接游戏手柄的 **USB 协议模式**（HID / XInput / GIP / Switch / PlayStation）与**振动能力**。
 
-Zero dependencies — pure Python 3 standard library, read-only access to
-`/proc` and `/sys` (no root required).
+多数手柄在 Steam 里看起来都一样（例如盖世小鸡 G7 Pro 在 GIP 和 XInput 两种模式下都显示为
+"Generic X-Box pad"），但**只有 Xbox 协议模式才有振动通道**。本工具直接读内核的 USB 描述符，
+告诉你手柄当前到底跑在哪个模式——这是 `jstest`、`evtest`、SDL 测试器这类"输入层"工具看不到的。
 
-> 检测 Linux 上已连接游戏手柄的 USB 协议模式与振动能力。纯标准库、零依赖、无需 root。
+## 快速开始（推荐：直接用可执行文件）
 
-## Why
-
-Most gamepads support several modes that look identical in Steam (e.g. the
-GameSir G7 Pro shows up as "Generic X-Box pad" in both GIP and XInput modes),
-but only the Xbox-protocol modes expose force feedback (rumble). This tool tells
-you which mode a controller is actually in, straight from the kernel's USB
-descriptors — something input-level testers (`jstest`, `evtest`, SDL testers)
-cannot see.
-
-## Usage
+仓库自带编译好的二进制 **`c/gamepad-mode-gui`**（约 24KB），无需安装任何依赖，只需系统有
+GTK3 运行库（绝大多数 Linux 桌面已自带）：
 
 ```bash
-./gamepad-mode.py            # one-shot report
-./gamepad-mode.py -w         # live curses TUI (1 s refresh, hotplug-aware, q to quit)
-./gamepad-mode.py --json     # JSON output for scripting
-./gamepad-mode.py --no-color # disable ANSI colors (for logs / non-tty)
+./c/gamepad-mode-gui          # GTK3 图形窗口，1s 自动刷新，支持热插拔，q 退出
+./c/gamepad-mode-gui --text   # 纯文本一次性输出
+./c/gamepad-mode-gui --json   # JSON 输出（可被脚本调用）
 ```
 
-Example output:
+示例输出（`--text`）：
 
 ```
-#  名称                         VID:PID    连接   协议模式                驱动    振动
-1  Generic X-Box pad          3537:100a  USB  XInput（Xbox 360）    xpad  有振动 ✅
-2  Microsoft X-Box 360 pad 0  28de:11ff  虚拟   虚拟手柄（uinput/Steam）  -  有振动 ✅
+#  名称                         VID:PID    连接   协议模式                                驱动    振动
+1  Generic X-Box pad          3537:109c  USB  GIP（Xbox One / Xbox Gaming Device）  xpad  有振动
+2  Microsoft X-Box 360 pad 0  28de:11ff  虚拟   虚拟手柄（uinput/Steam）              -     有振动
 ```
 
-## How it works
+## 从源码编译
 
-- Enumerates joystick devices from `/proc/bus/input/devices`.
-- Resolves each device's USB interface
-  `bInterfaceClass / bInterfaceSubClass / bInterfaceProtocol` and the bound
-  driver from `/sys/devices/...` to classify the protocol mode:
-  - `class ff / sub 47 / proto d0` → GIP (Xbox One / Xbox Gaming Device)
-  - `class ff / sub 5d / proto 01` → XInput (Xbox 360)
-  - `class 03` (HID) → generic HID (Android) — no rumble channel
-- Bluetooth controllers are classified by driver name
-  (`hid-nintendo`, `hid-sony`, `xpadneo`, ...).
-- Rumble support is read from the force-feedback capability bitmap
-  (`FF_RUMBLE`, bit `0x50`) instead of just "has an FF line".
-- Keyboard knobs / dials that the kernel also exposes as `js*` devices are
-  filtered out via their ABS axis set.
-
-## Notes
-
-- A row whose 连接/transport column shows **虚拟 (virtual)** is *not* a second
-  physical device: it is the virtual Xbox 360 controller that **Steam Input**
-  creates via uinput (`VID 28de` = Valve). Games talk to it, and Steam forwards
-  input and rumble to your real controller. Disabling Steam Input for that
-  controller makes the row disappear.
-
-## C GUI version (`c/`)
-
-A compiled C/GTK3 GUI version of the same detector (shares identical detection
-logic; `--text` / `--json` output matches the Python tool).
+需要 `gcc` + `pkg-config` + `gtk3-devel`（Fedora：`sudo dnf install gtk3-devel`）：
 
 ```bash
 cd c
-make                            # requires gtk3-devel (Fedora: sudo dnf install gtk3-devel)
-./gamepad-mode-gui              # GTK3 window, 1 s auto-refresh, hotplug-aware
-./gamepad-mode-gui --text       # one-shot plain text
-./gamepad-mode-gui --json       # JSON output
+make            # 生成 gamepad-mode-gui
 ```
 
-The binary is ~23 KB (dynamically linked against the GTK3 already present on
-most Linux desktops).
+## Python 版（备选，无需编译）
 
-## Requirements
+纯 Python 3 标准库实现（零第三方依赖，无需 root），`--text` / `--json` 输出与 C 版一致：
 
-- Linux
-- Python ≥ 3.6 (standard library only) — for the Python tool
-- GTK3 (runtime) + gcc + pkg-config + gtk3-devel (build-time) — for the C GUI
+```bash
+./gamepad-mode.py            # 一次性报告
+./gamepad-mode.py -w         # curses 实时界面（含热插拔检测）
+./gamepad-mode.py --json     # JSON 输出
+```
 
-## License
+## 检测原理
 
-MIT — see [LICENSE](LICENSE).
+- 从 `/proc/bus/input/devices` 枚举手柄设备（含 FF 能力位图）。
+- 经 `/sys/devices/...` 读取 USB 接口的 `bInterfaceClass / SubClass / Protocol` 及绑定驱动，判定协议模式：
+  - `class ff / sub 47 / proto d0` → **GIP**（Xbox One / Xbox Gaming Device）
+  - `class ff / sub 5d / proto 01` → **XInput**（Xbox 360）
+  - `class 03`（HID）→ 通用 HID（安卓）——**无振动通道**
+- 蓝牙手柄按驱动名区分（`hid-nintendo` / `hid-sony` / `xpadneo` 等）。
+- 振动能力解析力反馈位图里的 `FF_RUMBLE`（bit 0x50），比只看"有没有 FF 行"更准。
+- 内核把键盘音量旋钮也暴露为 `js*` 设备，通过 ABS 轴集合过滤掉。
+
+## 说明
+
+- 连接列为「**虚拟**」的条目不是第二个实体设备，而是 **Steam Input** 用 uinput 生成的虚拟
+  Xbox 360 手柄（`VID 28de` = Valve）：游戏与它交互，Steam 再把输入/振动转发到你的真实手柄。
+  关闭该手柄的"启用 Steam 输入"后此条目消失。
+- xpad 驱动对 GIP 协议的振动上限换算只有 50%、且不驱动扳机马达；XInput 模式是全幅。振动力度偏弱是驱动限制，非硬件故障。
+
+## 依赖
+
+- C 版：仅需系统 GTK3 运行库（二进制已编译好，无需其他）。
+- Python 版：Python ≥ 3.6，标准库。
+
+## 许可
+
+MIT — 见 [LICENSE](LICENSE)。
